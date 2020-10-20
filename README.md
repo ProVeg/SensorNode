@@ -9,4 +9,4 @@ It can also be used for a subset of its features, like a connected desk reservat
 without the air measurement function.
 
 It consists of a PCB with readly available modules and scripts written in MicroPython.
-Please see the respective folders [Hardware] and [Software].
+Please see the respective folders [Hardware](Hardware) and [Software](Software).
