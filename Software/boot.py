@@ -40,7 +40,7 @@ def do_connect():
 		sta_if.connect('ProVeg Guest', 'IamProVeg!')
 		while not sta_if.isconnected():	
 			print(".", end="")
-			time.sleep(1)
+			utime.sleep(1)
 	print('network config:', sta_if.ifconfig())
 
 def beep(freq=1000, dur=.5):
@@ -71,7 +71,6 @@ def draw():
         tft.text((1, 22), "!", TFT.BLACK, terminalfont, 4)
     #tft.text((1, 54), "Value is not", TFT.BLACK, terminalfont, 1)
     #tft.text((1, 64), "reliable yet!", TFT.BLACK, terminalfont, 1)
-    bmeval = bme.read_compensated_data()
     tft.text((1, 54), "Temp: {0:2.1f}  C".format(bmeval[0]), TFT.BLACK, terminalfont, 1)
     tft.circle((82, 55), 2, TFT.BLACK)
     tft.text((1, 64), "Pressure: {0:4d} hPa".format(int(bmeval[1]/100+0.5)), TFT.BLACK, terminalfont, 1)
@@ -103,10 +102,14 @@ tft.text((1, 132), "Starting app...", TFT.BLACK, terminalfont, 1)
 
 
 minute = starttime[4]
+day = starttime[2]
 while True:
     co2 = 0
     nowtime = utime.localtime()
     uptime = utime.mktime(nowtime) - utime.mktime(starttime)
+    bmeval = bme.read_compensated_data()
+    if bmeval[2] > 0:
+        ccs.put_envdata(humidity=bmeval[2],temp=bmeval[0])
     for i in range(5):
         utime.sleep(1)
         if ccs.data_ready():
@@ -124,3 +127,8 @@ while True:
             elif co2 > 800:
                 beep()
         minute = nowtime[4]
+
+    if nowtime[2] != day:
+        # Every day
+        # Write baseline to file
+        day = nowtime[2]
