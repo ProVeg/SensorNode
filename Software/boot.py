@@ -1,4 +1,10 @@
 version = "0.3"
+ssid = "ProVeg Guest"
+psk = "IamProVeg!"
+quietstartmins = 24 * 60 # Minutes after boot before alarms start
+thresyellow = 1000
+thresred = 1500
+
 # This file is executed on every boot (including wake-boot from deepsleep)
 #import esp
 #esp.osdebug(None)
@@ -30,14 +36,14 @@ tft._rgb = True
 tft._size = (128, 160)
 i2c = I2C(scl=Pin(5), sda=Pin(4))
 ccs = CCS811.CCS811(i2c=i2c, addr=90)
-bme = bme280.BME280(i2c=i2c)
+bme = bme280.BME280(i2c=i2c, mode=bme280.BME280_OSAMPLE_1)
 sta_if = network.WLAN(network.STA_IF)
 
 def do_connect():
 	if not sta_if.isconnected():
 		print('connecting to network...')
 		sta_if.active(True)
-		sta_if.connect('ProVeg Guest', 'IamProVeg!')
+		sta_if.connect(ssid, psk)
 		while not sta_if.isconnected():	
 			print(".", end="")
 			utime.sleep(1)
@@ -56,9 +62,9 @@ def draw():
     tft.rotation(2)
     if (co2 < 400):
         tft.fill(TFT.WHITE)
-    elif (co2 < 800):
+    elif (co2 < thresyellow):
         tft.fill(TFT.GREEN)
-    elif (co2 < 1200):
+    elif (co2 < thresred):
         tft.fill(TFT.YELLOW)
     else:
         tft.fill(TFT.RED)
@@ -67,7 +73,7 @@ def draw():
         tft.text((1, 22), " ---", TFT.BLACK, terminalfont, 4)
     else:
         tft.text((1, 22), " " + str(int(co2+0.5)), TFT.BLACK, terminalfont, 4)
-    if (uptime < (20*60)):
+    if (uptime < (quietstartmins*60)):
         tft.text((1, 22), "!", TFT.BLACK, terminalfont, 4)
     #tft.text((1, 54), "Value is not", TFT.BLACK, terminalfont, 1)
     #tft.text((1, 64), "reliable yet!", TFT.BLACK, terminalfont, 1)
@@ -80,7 +86,7 @@ def draw():
         tft.text((1, 74), "No humidity sensor".format(bmeval[2]), TFT.BLACK, terminalfont, 1)
     #tft.text((2, 94), "Next user: 13:45", TFT.BLACK, terminalfont, 1)
     tft.text((1, 151), "{0:04d}-{1:02d}-{2:02d} {3:02d}:{4:02d} Z".format(nowtime[0],nowtime[1],nowtime[2],nowtime[3],nowtime[4]), TFT.BLACK, terminalfont, 1)
-    tft.text((1, 141), "IP: "+sta_if.ifconfig()[0], TFT.BLACK, terminalfont, 1)
+    tft.text((1, 141), "IP "+sta_if.ifconfig()[0], TFT.BLACK, terminalfont, 1)
     tft.text((1, 121), "ProVeg Sensor "+version, TFT.BLACK, terminalfont, 1)
     tft.text((1, 131), "Uptime "+str(uptime)+"s", TFT.BLACK, terminalfont, 1)
 
@@ -102,6 +108,7 @@ tft.text((1, 132), "Starting app...", TFT.BLACK, terminalfont, 1)
 
 
 minute = starttime[4]
+hour = starttime[3]
 day = starttime[2]
 while True:
     co2 = 0
@@ -121,12 +128,20 @@ while True:
 
     if nowtime[4] != minute:
         # Every minute
-        if (uptime > (20*60)):
-            if co2 > 1200:
+        if (uptime > (quietstartmins*60)):
+            if co2 > thresred:
                 sirene()
-            elif co2 > 800:
+            elif co2 > thresyellow:
                 beep()
         minute = nowtime[4]
+
+    if nowtime[3] != hour:
+        # Every hour
+        try:
+            settime()
+        finally:
+            hour = nowtime[3]
+            minute = nowtime[4]
 
     if nowtime[2] != day:
         # Every day
