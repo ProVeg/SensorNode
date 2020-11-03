@@ -1,8 +1,7 @@
 version = "0.4"
-room = "405"
+room = "113"
 ssid = "ProVeg Guest"
 psk = "IamProVeg!"
-quietstartmins = 24 * 60 # Minutes after boot before alarms start
 thresyellow = 1000
 thresred = 1500
 
@@ -12,6 +11,7 @@ from machine import SPI, Pin, PWM, I2C
 import network, utime
 import math
 import CCS811
+import os
 import bme280_float as bme280
 from ntptime import settime
 
@@ -49,7 +49,7 @@ def draw():
         tft.text((1, 22), " ---", TFT.BLACK, terminalfont, 4)
     else:
         tft.text((1, 22), " " + str(int(co2+0.5)), TFT.BLACK, terminalfont, 4)
-    if (uptime < (quietstartmins*60)):
+    if (quiet):
         tft.text((1, 22), "!", TFT.BLACK, terminalfont, 4)
     #tft.text((1, 54), "Value is not", TFT.BLACK, terminalfont, 1)
     #tft.text((1, 64), "reliable yet!", TFT.BLACK, terminalfont, 1)
@@ -71,6 +71,7 @@ speaker(0)
 nwake = Pin(0, Pin.OUT)
 nwake(0)
 beep()
+quiet = True
 
 spi = SPI(1, baudrate=27000000, polarity=0, phase=0)
 tft=TFT(spi,16)
@@ -83,12 +84,16 @@ tft.text((1, 10), "simon.kowalewski@", TFT.BLACK, terminalfont, 1)
 tft.text((1, 19), "        proveg.com", TFT.BLACK, terminalfont, 1)
 tft.text((1, 37), "https://github.com", TFT.BLACK, terminalfont, 1)
 tft.text((1, 46), "/ProVeg/SensorNode", TFT.BLACK, terminalfont, 1)
-
-tft.text((1, 64), "Starting sensors..", TFT.BLACK, terminalfont, 1)
+try:
+    os.stat('baseline')
+    tft.text((1, 64), "Baseline found:", TFT.BLACK, terminalfont, 1)
+    loadbaseline = True
+except:
+    tft.text((1, 64), "No baseline found.", TFT.BLACK, terminalfont, 1)   
 i2c = I2C(scl=Pin(5), sda=Pin(4))
 ccs = CCS811.CCS811(i2c=i2c, addr=90)
 bme = bme280.BME280(i2c=i2c, mode=bme280.BME280_OSAMPLE_1)
-tft.text((1, 73), "CCS811 ready", TFT.BLACK, terminalfont, 1)
+tft.text((1, 82), "CCS811 ready", TFT.BLACK, terminalfont, 1)
 
 
 tft.text((1, 91), "Getting on WiFi...", TFT.BLACK, terminalfont, 1)
